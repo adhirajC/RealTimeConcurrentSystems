@@ -1,0 +1,147 @@
+import java.io.*;
+import java.net.*;
+
+
+
+public class Server {
+	   DatagramPacket sendPacket, receivePacket;
+	   DatagramSocket sendSocket, receiveSocket;
+	   
+	   public Server()
+	   {
+		   
+	      try {
+	         // Construct a datagram socket and bind it to any available 
+	         // port on the local host machine. This socket will be used to
+	         // send UDP Datagram packets.
+	         sendSocket = new DatagramSocket();
+
+	         // Construct a datagram socket and bind it to port 69
+	         // on the local host machine. This socket will be used to
+	         // receive UDP Datagram packets.
+	         receiveSocket = new DatagramSocket(69);
+	         
+	         // to test socket timeout (2 seconds)
+	         //receiveSocket.setSoTimeout(2000);
+	      } catch (SocketException se) {
+	         se.printStackTrace();
+	         System.exit(1);
+	      }
+	      
+	   }
+	   
+	   public void recieve(){
+		   byte sendread[]={0,3,0,1};
+		   byte sendwrite[]={0,4,0,0};
+		   byte msg[] = new byte[100];
+		    // Construct a DatagramPacket for receiving packets up 
+		      // to 100 bytes long (the length of the byte array).
+for(;;){
+		      byte data[] = new byte[100];
+		      receivePacket = new DatagramPacket(data, data.length);
+		      System.out.println("Server: Waiting for Packet.\n");
+
+		      // Block until a datagram packet is received from receiveSocket.
+		      try {        
+		         System.out.println("Waiting..."); // so we know we're waiting
+		         receiveSocket.receive(receivePacket);
+		      } catch (IOException e) {
+		        // System.out.print("IO Exception: likely:");
+		       //  System.out.println("Receive Socket Timed Out.\n" + e);
+		         e.printStackTrace();
+		         System.exit(1);
+		      }
+		      String s=null;
+		      String filename = null;
+		      String mode=null;
+		      int keeperfirst = 0;
+		      boolean fail = false;
+		   //   data = receivePacket.getData();
+		      //now lets check the format, first see if there is read/write request
+		      if((data[0]==0&&data[1]==1)||(data[0]==0&&data[1]==2)){
+		    	  
+		    	  s+=data[0];
+		    	  s+=data[1];
+		    	  //read!!!
+		    	  for(int i=0;i<data.length;i++){
+		    		  if (data[i]!=0){
+		    			  filename+=(char)data[i];
+		    		  if (data[i]==0){keeperfirst=i;break;}
+		    		  }if (i==data.length){System.out.println("not correct format");fail=true;}
+		    	  }
+		    	  s+=filename;
+		    	  if (!fail){
+		    	  if (data[keeperfirst+1]!=0){fail=true;}
+		    	  else{s+=data[keeperfirst+1];keeperfirst++;}
+		    		  }
+		    	  int newkeeper=0;
+		    	  if (!fail){
+		    		  
+		    		  newkeeper=keeperfirst;
+		    		  for(int j=keeperfirst+1;j<data.length;j++){
+		    			  if (data[j]!=0){
+			    			  mode+=(char)data[j];
+			    		  if (data[j]==0){newkeeper=j;break;}
+			    		  }if (j==data.length){System.out.println("not correct format");fail=true;}
+			    	  }
+		    		  s+=mode;
+		    		  }
+		    	  if (!fail){
+		    		  if (data[newkeeper+1]!=0){fail=true;}else{s+=data[newkeeper+1];
+		    		  }}
+		    	  if (!fail){
+		    		  System.out.println(s);
+		    		  for(int i=0;i<data.length;i++){System.out.println(data[i]);}
+		    		  if ((data[0]==0)&&data[1]==1){
+		    			 msg=sendread;
+		    		  }
+		    		  if ((data[0]==0)&&data[1]==2){
+		    			  msg=sendwrite;
+		    		  }
+		    		  sendPacket = new DatagramPacket(msg, msg.length,
+                              receivePacket.getAddress(), receivePacket.getPort());
+
+     System.out.println( "Server: Sending packet:");
+     System.out.println("To host: " + sendPacket.getAddress());
+     System.out.println("Destination host port: " + sendPacket.getPort());
+     System.out.println("Length: " + sendPacket.getLength());
+     System.out.print("Containing: ");
+     System.out.println(sendPacket.getData()); // as we are sending back the same thing
+     // could also say:
+     // System.out.println(new String(sendPacket.getData()));
+     
+     // Send the datagram packet to the client via the send socket. 
+     try {
+        sendSocket.send(sendPacket);
+     } catch (IOException e) {
+        e.printStackTrace();
+        System.exit(1);
+     }
+
+     System.out.println("Server: packet sent");
+
+     // We're finished, so close the sockets.
+     sendSocket.close();
+     receiveSocket.close();
+		    		  
+		    	  }
+		    	  
+		    	  }
+		    	  else{
+		    	  //invalid request!!
+		    		  System.out.println("invalid request");
+		      }
+}
+	   }
+	   
+	   public static void main(String args[])
+	   {
+	      Server s = new Server();
+	      s.recieve();
+	   }
+	   
+	   }
+	   
+	   
+	
+
